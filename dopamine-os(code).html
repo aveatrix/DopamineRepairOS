@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dopamine OS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'DM Mono', 'Courier New', monospace;
+    min-height: 100vh;
+  }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: #333; }
+
+  /* HEADER */
+  .header {
+    border-bottom: 1px solid #1a1a1a;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: #0a0a0a;
+    z-index: 100;
+  }
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .header-sub {
+    font-size: 11px;
+    color: #555;
+    margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ff9800;
+    display: inline-block;
+    margin-right: 6px;
+    animation: pulse 2s ease infinite;
+  }
+  .status-dot.good { background: #4caf50; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid #1a1a1a;
+    padding: 0 24px;
+    overflow-x: auto;
+    background: #0a0a0a;
+    position: sticky;
+    top: 73px;
+    z-index: 99;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 14px 16px;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: #444;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: #888; }
+  .tab-btn.active { color: #fff; border-bottom-color: #fff; }
+
+  /* CONTENT */
+  .content {
+    padding: 24px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .panel { display: none; animation: fadeIn 0.3s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+
+  /* CARDS */
+  .card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .card-inner { padding: 20px; }
+
+  /* DASHBOARD */
+  .dash-grid {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .score-card {
+    flex: 1;
+    min-width: 160px;
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+  }
+  .score-big {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+  .score-big span { font-size: 24px; color: #444; }
+  .score-label { font-size: 11px; color: #555; margin-top: 8px; letter-spacing: 0.1em; }
+  .progress-bar-wrap {
+    margin-top: 16px;
+    height: 4px;
+    background: #1a1a1a;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    background: #ff9800;
+  }
+  .progress-bar.good { background: #4caf50; }
+  .progress-bar.low { background: #e91e63; }
+  .score-sub { font-size: 11px; color: #444; margin-top: 8px; }
+
+  .pillars-list { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 10px; }
+  .pillar-row {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .pillar-row:hover { border-color: #555; }
+  .pillar-row-top { display: flex; justify-content: space-between; align-items: center; }
+  .pillar-icon-name { display: flex; align-items: center; gap: 8px; }
+  .pillar-icon { font-size: 14px; }
+  .pillar-name { font-size: 12px; color: #ccc; }
+  .pillar-count { font-size: 11px; color: #555; }
+  .mini-bar-wrap { margin-top: 6px; height: 2px; background: #1a1a1a; border-radius: 1px; overflow: hidden; }
+  .mini-bar { height: 100%; border-radius: 1px; transition: width 0.4s; }
+
+  /* WEEK */
+  .week-section {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .week-label { font-size: 11px; color: #555; letter-spacing: 0.1em; margin-bottom: 16px; }
+  .week-grid { display: flex; gap: 8px; }
+  .week-day { flex: 1; text-align: center; }
+  .week-day-label { font-size: 9px; color: #444; margin-bottom: 6px; }
+  .week-day-box {
+    height: 48px;
+    border-radius: 6px;
+    background: #151515;
+    border: 1px solid #1a1a1a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #333;
+  }
+  .week-day-box.has-data { color: #fff; }
+  .week-day-box.today { border-color: #444; }
+
+  .info-box {
+    background: #0f0f0f;
+    border: 1px solid #1a1a1a;
+    border-radius: 8px;
+    padding: 16px;
+    font-size: 11px;
+    color: #555;
+    line-height: 1.8;
+  }
+  .info-box span { color: #777; }
+
+  /* PROTOCOLS */
+  .filter-row { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    background: #1a1a1a;
+    color: #666;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover { color: #999; }
+  .filter-btn.active { background: #fff; color: #000; }
+
+  .pillar-card { margin-bottom: 20px; }
+  .pillar-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .pillar-header-icon { font-size: 18px; margin-right: 10px; }
+  .pillar-header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+  }
+  .pillar-header-desc { font-size: 12px; color: #666; margin-top: 6px; line-height: 1.5; max-width: 500px; }
+
+  .protocol-item {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    border-bottom: 1px solid #151515;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .protocol-item:last-child { border-bottom: none; }
+  .protocol-item:hover { background: rgba(255,255,255,0.03); }
+  .checkbox {
+    width: 20px; height: 20px;
+    border-radius: 4px;
+    border: 1.5px solid #333;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    font-size: 12px;
+    font-weight: 700;
+    color: #000;
+  }
+  .checkbox.checked { border-color: currentColor; background: currentColor; }
+  .protocol-text { font-size: 13px; color: #ccc; transition: all 0.15s; }
+  .protocol-text.done { color: #555; text-decoration: line-through; }
+
+  /* CHECK-IN */
+  .checkin-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .checkin-sub { font-size: 12px; color: #555; margin-bottom: 20px; }
+
+  .slider-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 12px;
+  }
+  .slider-q { font-size: 13px; color: #ccc; margin-bottom: 16px; }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    cursor: pointer;
+    box-shadow: 0 0 0 3px #333;
+  }
+  .slider-labels { display: flex; justify-content: space-between; margin-top: 8px; }
+  .slider-min { font-size: 10px; color: #444; }
+  .slider-val { font-size: 13px; color: #fff; font-weight: 500; }
+  .slider-max { font-size: 10px; color: #444; }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: opacity 0.2s;
+  }
+  .submit-btn:hover { opacity: 0.85; }
+
+  .result-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 12px;
+    padding: 32px;
+    text-align: center;
+  }
+  .result-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 56px;
+    font-weight: 800;
+    color: #fff;
+  }
+  .result-score span { font-size: 24px; color: #444; }
+  .result-label { font-size: 11px; color: #555; margin-top: 4px; letter-spacing: 0.1em; }
+  .result-msg { margin-top: 24px; font-size: 12px; color: #666; line-height: 1.8; }
+  .edit-btn {
+    margin-top: 20px;
+    background: none;
+    border: 1px solid #333;
+    color: #666;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: 'DM Mono', monospace;
+    transition: border-color 0.2s;
+  }
+  .edit-btn:hover { border-color: #666; color: #999; }
+
+  /* SCIENCE */
+  .sci-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .sci-sub { font-size: 12px; color: #555; margin-bottom: 20px; }
+  .sci-card {
+    background: #111;
+    border: 1px solid #1e1e1e;
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 10px;
+  }
+  .sci-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sci-card-icon { font-size: 16px; }
+  .sci-card-name { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: #fff; }
+  .sci-card-text { font-size: 12px; color: #777; line-height: 1.8; }
+  .sci-note { background: #0f0f0f; border: 1px solid #1a1a1a; border-radius: 8px; padding: 16px; margin-top: 8px; font-size: 11px; color: #555; line-height: 1.8; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="header-title">DOPAMINE OS</div>
+    <div class="header-sub">RECEPTOR REPAIR SYSTEM</div>
+  </div>
+  <div style="display:flex;align-items:center;">
+    <span class="status-dot" id="statusDot"></span>
+    <span style="font-size:12px;color:#666;" id="statusPct">0% today</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard')">DASHBOARD</button>
+  <button class="tab-btn" onclick="switchTab('protocols')">PROTOCOLS</button>
+  <button class="tab-btn" onclick="switchTab('checkin')">CHECK-IN</button>
+  <button class="tab-btn" onclick="switchTab('science')">SCIENCE</button>
+</div>
+
+<div class="content">
+
+  <!-- DASHBOARD -->
+  <div class="panel active" id="panel-dashboard">
+    <div class="dash-grid">
+      <div class="score-card">
+        <div class="score-big"><span id="bigPct">0</span><span>%</span></div>
+        <div class="score-label">TODAY'S PROTOCOLS</div>
+        <div class="progress-bar-wrap">
+          <div class="progress-bar" id="mainBar" style="width:0%"></div>
+        </div>
+        <div class="score-sub" id="mainSub">0/25 done</div>
+      </div>
+      <div class="pillars-list" id="pillarsList"></div>
+    </div>
+
+    <div class="week-section">
+      <div class="week-label">7-DAY STREAK</div>
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+
+    <div class="info-box">
+      <span>// REPAIR TIMELINE: </span>
+      Days 1–7: receptor sensitivity begins recovering. Days 14–21: motivation returns. Days 30–60: baseline mood stabilizes. Full reset: 90 days of consistent protocol.
+    </div>
+  </div>
+
+  <!-- PROTOCOLS -->
+  <div class="panel" id="panel-protocols">
+    <div class="filter-row" id="filterRow">
+      <button class="filter-btn active" onclick="filterPillar('all')">ALL</button>
+    </div>
+    <div id="protocolList"></div>
+  </div>
+
+  <!-- CHECK-IN -->
+  <div class="panel" id="panel-checkin">
+    <div class="checkin-title">DAILY SELF-ASSESSMENT</div>
+    <div class="checkin-sub">Track your subjective recovery. Rate each dimension.</div>
+    <div id="checkinForm"></div>
+    <div id="checkinResult" style="display:none;"></div>
+  </div>
+
+  <!-- SCIENCE -->
+  <div class="panel" id="panel-science">
+    <div class="sci-title">THE MECHANISM</div>
+    <div class="sci-sub">Why each protocol works at a neurological level.</div>
+    <div class="sci-card">
+      <div class="sci-card-header">
+        <div class="sci-card-name">HOW DOPAMINE BREAKS</div>
+      </div>
+      <div class="sci-card-text">
+        Dopamine isn't about pleasure — it's about <span style="color:#ccc">anticipation, motivation, and drive</span>. When you repeatedly expose yourself to high-stimulation inputs (social media, junk food, pornography), your brain responds by <span style="color:#ccc">downregulating receptors</span> — removing them to compensate for excess stimulation. The result: ordinary life feels flat. Nothing moves you.
+        <br><br>
+        The fix isn't medication. It's <span style="color:#ccc">systematic receptor restoration</span> through behavior.
+      </div>
+    </div>
+    <div id="scienceList"></div>
+    <div class="sci-note">
+      <span style="color:#777">// NOTE: </span>This tool is built on behavioral neuroscience principles (Huberman Lab, dopamine research by Schultz, Berridge). It's not a substitute for clinical care. If symptoms are severe, consult a psychiatrist.
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PILLARS = [
+  {
+    id: "sleep", icon: "◑", label: "Sleep", accent: "#7b68ee",
+    description: "Dopamine receptors restore during deep sleep. Deprivation = 50% receptor reduction.",
+    science: "Sleep is when the brain clears metabolic waste via the glymphatic system and replenishes dopamine receptor density.",
+    protocols: [
+      "Sleep & wake at the same time daily (±30 min)",
+      "No screens 90 min before bed",
+      "Keep room dark & cool (65–68°F / 18–20°C)",
+      "Get morning sunlight within 30 min of waking",
+      "No caffeine after 1pm",
+    ]
+  },
+  {
+    id: "exercise", icon: "↑", label: "Movement", accent: "#4caf50",
+    description: "Exercise triggers a 200% dopamine surge and grows new receptors over time.",
+    science: "Aerobic exercise increases dopamine synthesis, releases BDNF which builds new dopamine neurons, and upregulates receptor density.",
+    protocols: [
+      "20+ min of aerobic exercise daily (walking counts)",
+      "Cold exposure: 1–3 min cold shower or plunge",
+      "Resistance training 3x/week",
+      "Move every hour — avoid sitting >90 min",
+      "Exercise outdoors when possible for light exposure",
+    ]
+  },
+  {
+    id: "diet", icon: "◎", label: "Nutrition", accent: "#ff9800",
+    description: "Dopamine is made from tyrosine. Feed the factory the right raw materials.",
+    science: "Dopamine is synthesized from L-tyrosine → L-DOPA → Dopamine. Gut bacteria also produce precursors via the gut-brain axis.",
+    protocols: [
+      "Eat tyrosine-rich foods: eggs, beef, chicken, fish",
+      "Add fermented foods daily (gut-brain axis)",
+      "Limit ultra-processed food & added sugar",
+      "Eat enough — chronic under-eating tanks dopamine",
+      "Consider magnesium & Omega-3 if deficient",
+    ]
+  },
+  {
+    id: "stimulus", icon: "⊘", label: "Dopamine Fast", accent: "#e91e63",
+    description: "Overstimulation = receptor downregulation. Lower the baseline to feel again.",
+    science: "Constant supernormal stimuli (social media, junk food) cause receptor downregulation — the brain removes receivers because dopamine is always flooding in.",
+    protocols: [
+      "No social media in the first hour after waking",
+      "Do boring tasks without your phone nearby",
+      "One full day/week of low-stimulation",
+      "Delay gratification: earn rewards after tasks",
+      "Eliminate one high-stimulation habit for 30 days",
+    ]
+  },
+  {
+    id: "purpose", icon: "→", label: "Purpose & Flow", accent: "#03a9f4",
+    description: "Anticipation & progress release more dopamine than arrival. Build the chase.",
+    science: "Dopamine fires most intensely during anticipation & progress, not completion. Meaningful challenge keeps the system healthy and motivating.",
+    protocols: [
+      "Set one concrete goal per day and complete it",
+      "Track visible progress on meaningful projects",
+      "Do one thing daily that makes you curious",
+      "Celebrate small wins — don't skip completion",
+      "Build skills in something genuinely difficult",
+    ]
+  },
+];
+
+const QUESTIONS = [
+  { q: "How motivated do you feel today?", min: "Flat", max: "Fired up" },
+  { q: "How easy is it to find pleasure in small things?", min: "Nothing lands", max: "Everything pops" },
+  { q: "How is your energy without caffeine?", min: "Dead", max: "Clear & alive" },
+  { q: "How consistent is your mood?", min: "Crashing", max: "Stable" },
+];
+
+// State
+const checked = {};
+const scores = [3,3,3,3];
+let activePillar = 'all';
+let submitted = false;
+const today = new Date().toISOString().split("T")[0];
+
+function getDays() {
+  try { return JSON.parse(localStorage.getItem("dopa_days") || "{}"); } catch { return {}; }
+}
+function saveDays(d) {
+  try { localStorage.setItem("dopa_days", JSON.stringify(d)); } catch {}
+}
+
+function getKey(pillarId, idx) { return pillarId + "_" + idx; }
+
+function totalChecked() { return Object.values(checked).filter(Boolean).length; }
+function totalProtocols() { return PILLARS.reduce((a,p) => a + p.protocols.length, 0); }
+function pct() { return Math.round((totalChecked() / totalProtocols()) * 100); }
+
+function updateHeader() {
+  const p = pct();
+  document.getElementById("bigPct").textContent = p;
+  document.getElementById("statusPct").textContent = p + "% today";
+  const dot = document.getElementById("statusDot");
+  dot.className = "status-dot" + (p > 50 ? " good" : "");
+  const bar = document.getElementById("mainBar");
+  bar.style.width = p + "%";
+  bar.className = "progress-bar" + (p > 70 ? " good" : p < 30 ? " low" : "");
+  document.getElementById("mainSub").textContent = totalChecked() + "/" + totalProtocols() + " done";
+}
+
+function updatePillarsList() {
+  const el = document.getElementById("pillarsList");
+  el.innerHTML = "";
+  PILLARS.forEach(p => {
+    const done = p.protocols.filter((_,i) => checked[getKey(p.id,i)]).length;
+    const pp = Math.round((done / p.protocols.length) * 100);
+    const row = document.createElement("div");
+    row.className = "pillar-row";
+    row.innerHTML = `
+      <div class="pillar-row-top">
+        <div class="pillar-icon-name">
+          <span class="pillar-icon" style="color:${p.accent}">${p.icon}</span>
+          <span class="pillar-name">${p.label}</span>
+        </div>
+        <span class="pillar-count" style="color:${pp===100?p.accent:'#555'}">${done}/${p.protocols.length}</span>
+      </div>
+      <div class="mini-bar-wrap"><div class="mini-bar" style="width:${pp}%;background:${p.accent}"></div></div>
+    `;
+    row.onclick = () => { switchTab('protocols'); filterPillar(p.id); };
+    el.appendChild(row);
+  });
+}
+
+function updateWeek() {
+  const days = getDays();
+  const grid = document.getElementById("weekGrid");
+  grid.innerHTML = "";
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split("T")[0];
+    const label = d.toLocaleDateString("en",{weekday:"short"}).slice(0,2).toUpperCase();
+    const data = days[key];
+    const isToday = key === today;
+    let bg = "#151515";
+    if (data) {
+      bg = data.pct > 70 ? "#1a2e1a" : data.pct > 40 ? "#2e1e0a" : "#2e0e0e";
+    }
+    const col = document.createElement("div");
+    col.className = "week-day";
+    col.innerHTML = `
+      <div class="week-day-label">${label}</div>
+      <div class="week-day-box${data?' has-data':''}${isToday?' today':''}" style="background:${bg};${isToday?'border-color:#444':''}">
+        ${data ? data.pct + "%" : "—"}
+      </div>
+    `;
+    grid.appendChild(col);
+  }
+}
+
+function buildProtocols() {
+  // Filter buttons
+  const fr = document.getElementById("filterRow");
+  fr.innerHTML = `<button class="filter-btn${activePillar==='all'?' active':''}" onclick="filterPillar('all')">ALL</button>`;
+  PILLARS.forEach(p => {
+    const btn = document.createElement("button");
+    btn.className = "filter-btn" + (activePillar===p.id?" active":"");
+    btn.style.background = activePillar===p.id ? p.accent : "#1a1a1a";
+    btn.style.color = activePillar===p.id ? "#000" : "#666";
+    btn.textContent = p.icon + " " + p.label.toUpperCase();
+    btn.onclick = () => filterPillar(p.id);
+    fr.appendChild(btn);
+  });
+
+  const list = document.getElementById("protocolList");
+  list.innerHTML = "";
+  PILLARS.filter(p => activePillar==='all' || p.id===activePillar).forEach(p => {
+    const card = document.createElement("div");
+    card.className = "card pillar-card";
+    const header = document.createElement("div");
+    header.className = "pillar-header";
+    header.innerHTML = `
+      <div>
+        <div class="pillar-header-title">
+          <span class="pillar-header-icon" style="color:${p.accent}">${p.icon}</span>
+          ${p.label.toUpperCase()}
+        </div>
+        <div class="pillar-header-desc">${p.description}</div>
+      </div>
+    `;
+    card.appendChild(header);
+    p.protocols.forEach((text, i) => {
+      const key = getKey(p.id, i);
+      const item = document.createElement("div");
+      item.className = "protocol-item";
+      item.innerHTML = `
+        <div class="checkbox${checked[key]?' checked':''}" style="color:${p.accent}" id="cb_${key}">
+          ${checked[key]?'✓':''}
+        </div>
+        <span class="protocol-text${checked[key]?' done':''}" id="pt_${key}">${text}</span>
+      `;
+      item.onclick = () => toggleCheck(p.id, i, p.accent);
+      card.appendChild(item);
+    });
+    list.appendChild(card);
+  });
+}
+
+function toggleCheck(pillarId, idx, accent) {
+  const key = getKey(pillarId, idx);
+  checked[key] = !checked[key];
+  const cb = document.getElementById("cb_" + key);
+  const pt = document.getElementById("pt_" + key);
+  if (checked[key]) {
+    cb.className = "checkbox checked";
+    cb.style.color = accent;
+    cb.textContent = "✓";
+    pt.className = "protocol-text done";
+  } else {
+    cb.className = "checkbox";
+    cb.style.color = accent;
+    cb.textContent = "";
+    pt.className = "protocol-text";
+  }
+  updateHeader();
+  updatePillarsList();
+  updateWeek();
+}
+
+function filterPillar(id) {
+  activePillar = id;
+  buildProtocols();
+}
+
+function buildCheckin() {
+  const days = getDays();
+  if (submitted && days[today]) {
+    showResult(days[today]);
+    return;
+  }
+  document.getElementById("checkinResult").style.display = "none";
+  document.getElementById("checkinForm").style.display = "block";
+  const form = document.getElementById("checkinForm");
+  form.innerHTML = "";
+  QUESTIONS.forEach((q, i) => {
+    const card = document.createElement("div");
+    card.className = "slider-card";
+    card.innerHTML = `
+      <div class="slider-q">${q.q}</div>
+      <input type="range" min="1" max="5" value="${scores[i]}" 
+        style="background: linear-gradient(to right, #7b68ee ${(scores[i]-1)*25}%, #222 ${(scores[i]-1)*25}%)"
+        oninput="updateScore(${i}, this.value, this)"
+      >
+      <div class="slider-labels">
+        <span class="slider-min">${q.min}</span>
+        <span class="slider-val" id="sv_${i}">${scores[i]}/5</span>
+        <span class="slider-max">${q.max}</span>
+      </div>
+    `;
+    form.appendChild(card);
+  });
+  const avg = (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+  const btn = document.createElement("button");
+  btn.className = "submit-btn";
+  btn.id = "submitBtn";
+  btn.textContent = "LOG TODAY → " + avg + "/5 avg";
+  btn.onclick = submitCheckin;
+  form.appendChild(btn);
+}
+
+function updateScore(i, val, el) {
+  scores[i] = +val;
+  document.getElementById("sv_" + i).textContent = val + "/5";
+  el.style.background = `linear-gradient(to right, #7b68ee ${(val-1)*25}%, #222 ${(val-1)*25}%)`;
+  const avg = (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+  const btn = document.getElementById("submitBtn");
+  if (btn) btn.textContent = "LOG TODAY → " + avg + "/5 avg";
+}
+
+function submitCheckin() {
+  const avg = (scores.reduce((a,b)=>a+b,0)/scores.length).toFixed(1);
+  const days = getDays();
+  days[today] = { pct: pct(), scores: [...scores], avg };
+  saveDays(days);
+  submitted = true;
+  updateWeek();
+  showResult(days[today]);
+}
+
+function showResult(data) {
+  document.getElementById("checkinForm").style.display = "none";
+  const res = document.getElementById("checkinResult");
+  res.style.display = "block";
+  const avg = data.avg;
+  const msg = avg >= 4 ? "System running well. Maintain protocols." :
+              avg >= 3 ? "Mid-range — stay consistent, it compounds." :
+              "Low signal detected. Prioritize sleep & reduce stimulation today.";
+  res.innerHTML = `
+    <div class="result-card">
+      <div class="result-score">${avg}<span>/5</span></div>
+      <div class="result-label">TODAY'S DOPAMINE SCORE</div>
+      <div class="result-msg">${msg}</div>
+      <button class="edit-btn" onclick="editCheckin()">Edit</button>
+    </div>
+  `;
+}
+
+function editCheckin() {
+  submitted = false;
+  buildCheckin();
+}
+
+function buildScience() {
+  const list = document.getElementById("scienceList");
+  list.innerHTML = "";
+  PILLARS.forEach(p => {
+    const card = document.createElement("div");
+    card.className = "sci-card";
+    card.innerHTML = `
+      <div class="sci-card-header">
+        <span class="sci-card-icon" style="color:${p.accent}">${p.icon}</span>
+        <span class="sci-card-name">${p.label.toUpperCase()}</span>
+      </div>
+      <div class="sci-card-text">${p.science}</div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function switchTab(id) {
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("panel-" + id).classList.add("active");
+  document.querySelectorAll(".tab-btn").forEach(b => {
+    if (b.textContent.toLowerCase().includes(id === "checkin" ? "check" : id === "dashboard" ? "dash" : id)) {
+      b.classList.add("active");
+    }
+  });
+  if (id === "protocols") buildProtocols();
+  if (id === "checkin") buildCheckin();
+  if (id === "science") buildScience();
+  if (id === "dashboard") { updateHeader(); updatePillarsList(); updateWeek(); }
+}
+
+// Fix tab button active state
+document.querySelectorAll(".tab-btn").forEach(b => {
+  b.addEventListener("click", function() {
+    document.querySelectorAll(".tab-btn").forEach(x => x.classList.remove("active"));
+    this.classList.add("active");
+  });
+});
+
+// Init
+updateHeader();
+updatePillarsList();
+updateWeek();
+buildScience();
+</script>
+</body>
+</html>
